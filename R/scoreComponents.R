@@ -1,10 +1,15 @@
-#' Validate and prepare inputs for normScore
+#' Validate and prepare inputs for normScore and diagnostic graphs
 #'
 #' Checks the input objects used by `normScore()`, including group annotation,
 #' raw data, normalized datasets, sample names, protein names, and bootstrap
 #' settings. The function also aligns the order of rows and columns across
 #' normalized datasets, adds the log-transformed dataset when required, and
-#' identifies whether the analysis contains a single group.
+#' identifies whether the analysis contains a single group. 
+#' 
+#' It can also be used to validate data for diagnostic plotting, using either 
+#' the main global funcion `plotNormScoreDiagnostic()` or any individual
+#' plotting function. In this case, some input parameters are not requiered
+#' for the validation function (nBoot and returnDetails).
 #'
 #' @param normalizedDataList A named list of normalized data matrices or data
 #'   frames. Each element should contain proteins in rows and samples
@@ -21,13 +26,53 @@
 #' @param returnDetails Logical value indicating whether detailed results
 #'    should be returned by `normScore()`.
 #' @param nBoot Numeric value indicating the number of bootstrap resamples.
+#' @param fromMainFunction Logical value indicating wheter inputs will be used
+#' to `normScore()` main function (nBoot and returnDetails are required), or 
+#' only for displaying diagnostic plots. Default: `FALSE`. 
 #'
 #' @return A list containing validated and prepared inputs:
-#'   `normalizedDataList`, `groupData`, `rawData`, `refGroup`, `altGroup`,
-#'    `returnDetails`, `nBoot`, and `singleGroup`.
+#'   `normalizedDataList`, `groupData`, `rawData`, `refGroup`, 
+#'    `altGroup`, `returnDetails`, `nBoot`, and `singleGroup`.
+#'    
+#' @examples
+#' 
+#' # Simulate proteomic data
+#' simData <- simulateData(nProteins = 1000)
 #'
-#' @keywords internal
-#' @noRd
+#' # Artificial normalization (just adding shifts to raw data)
+#' normalizedDataList <- list(
+#'     Norm1 = simData$logData + 0.1,
+#'     Norm2 = simData$logData + 1,
+#'     Norm3 = simData$logData - 1,
+#'     Norm4 = simData$logData * 1.1,
+#'     Norm5 = simData$logData * 0.9,
+#'     Norm6 = simData$logData * runif(ncol(simData$logData), 0.8, 1.2)
+#' )
+#'
+#' # Validating inputs for normScore() function
+#' inputs <- validateNormScoreInput(
+#'     normalizedDataList = normalizedDataList,
+#'     groupData = simData$metadata,
+#'     rawData = simData$rawData,
+#'     refGroup = NULL,
+#'     altGroup = NULL,
+#'     returnDetails = TRUE,
+#'     nBoot = 100, 
+#'     fromMainFunction = TRUE
+#' ) 
+#' 
+#' # Validating inputs for diagnostic graphs
+#' inputs <- validateNormScoreInput(
+#'     normalizedDataList = normalizedDataList,
+#'     groupData = simData$metadata,
+#'     rawData = simData$rawData,
+#'     refGroup = NULL,
+#'     altGroup = NULL,
+#'     fromMainFunction = FALSE
+#' ) 
+#' 
+#'
+#' @export
 
 validateNormScoreInput <- function(
     normalizedDataList,
@@ -37,7 +82,7 @@ validateNormScoreInput <- function(
     altGroup,
     returnDetails = NULL,
     nBoot = NULL,
-    fromMainFunction = TRUE
+    fromMainFunction = FALSE
 ) {
     groupInfo <- .validateGroupData(groupData, refGroup, altGroup)
 

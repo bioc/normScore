@@ -1,4 +1,4 @@
-test_that("plotItem0 returns a ggplot object", {
+test_that("plotDiagnosticSystematicBias returns a ggplot object", {
     rawData <- matrix(
         runif(120 * 6, 100, 1000),
         nrow = 120,
@@ -6,13 +6,13 @@ test_that("plotItem0 returns a ggplot object", {
         dimnames = list(paste0("P", 1:120), paste0("S", 1:6))
     )
 
-    p <- plotItem0(rawData)
+    p <- plotDiagnosticSystematicBias(rawData)
 
     expect_s3_class(p, "ggplot")
 })
 
 
-test_that("plotItem1 returns a ggplot object", {
+test_that("plotDiagnosticPCV returns a ggplot object", {
     groupData <- data.frame(
         Samples = paste0("S", 1:6),
         Groups = rep(c("A", "B"), each = 3)
@@ -30,7 +30,7 @@ test_that("plotItem1 returns a ggplot object", {
         Norm2 = log2(rawData + 1)
     )
 
-    p <- plotItem1(
+    p <- plotDiagnosticPCV(
         normalizedDataList = normalizedDataList,
         groupData = groupData
     )
@@ -39,7 +39,7 @@ test_that("plotItem1 returns a ggplot object", {
 })
 
 
-test_that("plotItem2 returns a ggplot object", {
+test_that("plotDiagnosticWithinGroupCor returns a ggplot object", {
     groupData <- data.frame(
         Samples = paste0("S", 1:6),
         Groups = rep(c("A", "B"), each = 3)
@@ -57,7 +57,7 @@ test_that("plotItem2 returns a ggplot object", {
         Norm2 = log2(rawData + 1)
     )
 
-    p <- plotItem2(
+    p <- plotDiagnosticWithinGroupCor(
         normalizedDataList = normalizedDataList,
         groupData = groupData
     )
@@ -66,7 +66,7 @@ test_that("plotItem2 returns a ggplot object", {
 })
 
 
-test_that("plotItem3 returns an arranged ggplot object", {
+test_that("plotDiagnosticMA returns an arranged ggplot object", {
     groupData <- data.frame(
         Samples = paste0("S", 1:6),
         Groups = rep(c("A", "B"), each = 3)
@@ -84,7 +84,7 @@ test_that("plotItem3 returns an arranged ggplot object", {
         Norm2 = log2(rawData + 1)
     )
 
-    p <- plotItem3(
+    p <- plotDiagnosticMA(
         normalizedDataList = normalizedDataList,
         groupData = groupData,
         refGroup = "B",
@@ -95,7 +95,7 @@ test_that("plotItem3 returns an arranged ggplot object", {
 })
 
 
-test_that("plotItem4 returns an arranged ggplot object", {
+test_that("plotDiagnosticMeanSD returns an arranged ggplot object", {
     rawData <- matrix(
         runif(120 * 6, 100, 1000),
         nrow = 120,
@@ -108,13 +108,13 @@ test_that("plotItem4 returns an arranged ggplot object", {
         Norm2 = log2(rawData + 1)
     )
 
-    p <- plotItem4(normalizedDataList)
+    p <- plotDiagnosticMeanSD(normalizedDataList)
 
     expect_s3_class(p, "gg")
 })
 
 
-test_that("plotItem5 returns an arranged ggplot object", {
+test_that("plotDiagnosticRLE returns an arranged ggplot object", {
     rawData <- matrix(
         runif(120 * 6, 100, 1000),
         nrow = 120,
@@ -127,13 +127,13 @@ test_that("plotItem5 returns an arranged ggplot object", {
         Norm2 = log2(rawData + 1)
     )
 
-    p <- plotItem5(normalizedDataList)
+    p <- plotDiagnosticRLE(normalizedDataList)
 
     expect_s3_class(p, "gg")
 })
 
 
-test_that("plotItem6 returns an arranged ggplot object", {
+test_that("plotDiagnosticTotalIntensity returns an arranged ggplot object", {
     rawData <- matrix(
         runif(120 * 6, 100, 1000),
         nrow = 120,
@@ -146,7 +146,7 @@ test_that("plotItem6 returns an arranged ggplot object", {
         Norm2 = log2(rawData + 1)
     )
 
-    p <- plotItem6(normalizedDataList)
+    p <- plotDiagnosticTotalIntensity(normalizedDataList)
 
     expect_s3_class(p, "gg")
 })

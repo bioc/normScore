@@ -187,53 +187,6 @@
     fromMainFunction
 ) {
     if (!fromMainFunction) {
-        return(
-            list(
-                returnDetails = returnDetails,
-                nBoot = nBoot
-            )
-        )
-    }
-
-    if (!is.logical(returnDetails) ||
-        length(returnDetails) != 1L) {
-        returnDetails <- FALSE
-        warning(
-            "`returnDetails` must be a single logical value. ",
-            "Setting it to FALSE."
-        )
-    }
-
-    if (!is.numeric(nBoot) || length(nBoot) != 1L) {
-        nBoot <- 500
-        warning(
-            "`nBoot` must be a single numeric value. ",
-            "Setting it to 500."
-        )
-    }
-
-    if (nBoot < 100) {
-        nBoot <- 100
-        warning(
-            "The minimum value allowed for `nBoot` is 100. ",
-            "Setting it to 100."
-        )
-    }
-
-    list(
-        returnDetails = returnDetails,
-        nBoot = nBoot
-    )
-}
-
-
-#' @noRd
-.validateMainArguments <- function(
-    returnDetails,
-    nBoot,
-    fromMainFunction
-) {
-    if (!fromMainFunction) {
         return(list(
             returnDetails = returnDetails,
             nBoot = nBoot

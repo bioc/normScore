@@ -4,22 +4,54 @@
 #' detailed ranking results.
 
 
-#' Plot raw total intensity across samples
+#' Plot raw total intensity across samples  (ITEM 0)
 #'
 #' Generates the diagnostic plot associated with the systematic bias penalty
 #' item (item 0). Raw total intensity is computed for each sample and displayed
 #' as a bar plot.
+#' 
+#' Important! First run `validateNormScoreInput()` function and them use the 
+#' correspondent outputs to plot individual diagnostic graphs as it is shown
+#' in the example below. 
 #'
 #' @param data A raw intensity matrix or data frame with proteins in rows and
 #'   samples in columns.
 #'
 #' @return A `ggplot` object.
+#' 
+#' @examples
+#' # Simulate proteomic data with considerable systematic bias
+#' simData <- simulateData(nProteins = 1000, sampleShiftSd = 1,
+#'     sampleShiftCap = 0.9)
 #'
-#' @keywords internal
-#' @noRd
+#' # Adding variations to log raw data to simulate different normalization 
+#' # situations
+#' normalizedDataList <- list(
+#'     Log = simData$logData,
+#'     Norm1 = simData$logData + 
+#'         rnorm(n = ncol(simData$logData), mean = 5, sd = 0.5),
+#'     Norm2 = sweep(simData$logData, 2, 
+#'         apply(simData$logData, 2, median, na.rm = TRUE) - 
+#'         median(as.matrix(simData$logData), na.rm = TRUE), "-")
+#' )
+#' 
+#' # Validating inputs for diagnostic graphs
+#' inputs <- validateNormScoreInput(
+#'     normalizedDataList = normalizedDataList,
+#'     groupData = simData$metadata,
+#'     rawData = simData$rawData,
+#'     refGroup = NULL,
+#'     altGroup = NULL,
+#'     fromMainFunction = FALSE
+#' ) 
+#' 
+#' # Plot Systematic Bias Penalty
+#' plotDiagnosticSystematicBias(data = inputs$rawData)
+#'
+#' @export
 
 
-plotItem0 <- function(
+plotDiagnosticSystematicBias <- function(
     data
 ) {
     # Estimating sum of intensities
@@ -132,22 +164,57 @@ plotItem1Boxplot <- function(dfForest, groups){
 }
 
 
-#' Plot pooled coefficient of variation
+#' Plot pooled coefficient of variation (Item 1)
 #'
 #' Generates the diagnostic plot associated with the PCV item. PCV values are
 #' computed for each normalization method and group, and displayed as
 #' point-range or boxplot-based summaries depending on the number of groups.
+#' 
+#' Important! First run `validateNormScoreInput()` function and them use the 
+#' correspondent outputs to plot individual diagnostic graphs as it is shown
+#' in the example below. 
 #'
 #' @param normalizedDataList A named list of normalized data matrices.
 #' @param groupData A data frame with sample names and group labels.
 #'
 #' @return A `ggplot` or arranged ggplot object.
 #'
-#' @keywords internal
-#' @noRd
+#' @examples
+#' # Simulate proteomic data with considerable systematic bias
+#' simData <- simulateData(nProteins = 1000, sampleShiftSd = 1,
+#'     sampleShiftCap = 0.9)
+#'
+#' # Adding variations to log raw data to simulate different normalization 
+#' # situations
+#' normalizedDataList <- list(
+#'     Log = simData$logData,
+#'     Norm1 = simData$logData + 
+#'         rnorm(n = ncol(simData$logData), mean = 5, sd = 0.5),
+#'     Norm2 = sweep(simData$logData, 2, 
+#'         apply(simData$logData, 2, median, na.rm = TRUE) - 
+#'         median(as.matrix(simData$logData), na.rm = TRUE), "-")
+#' )
+#' 
+#' # Validating inputs for diagnostic graphs
+#' inputs <- validateNormScoreInput(
+#'     normalizedDataList = normalizedDataList,
+#'     groupData = simData$metadata,
+#'     rawData = simData$rawData,
+#'     refGroup = NULL,
+#'     altGroup = NULL,
+#'     fromMainFunction = FALSE
+#' ) 
+#' 
+#' # Plot pooled coefficient of variation
+#' plotDiagnosticPCV(
+#'     normalizedDataList = inputs$normalizedDataList,
+#'     groupData = inputs$groupData
+#' ) # Best to Worst: Norm2 > Norm1 > Log
+#'
+#' @export
 
 
-plotItem1 <- function(normalizedDataList, groupData) {
+plotDiagnosticPCV <- function(normalizedDataList, groupData) {
     groups <- levels(as.factor(groupData$Groups))
     dfPCV <- do.call(rbind, lapply(normalizedDataList, getPCV,
         groups = groups,
@@ -177,21 +244,56 @@ plotItem1 <- function(normalizedDataList, groupData) {
 }
 
 
-#' Plot within-group correlations
+#' Plot within-group correlations (Item 2)
 #'
 #' Generates the diagnostic plot associated with the correlation item. The plot
 #' displays the distribution of within-group sample correlations for each
 #' normalization method.
+#' 
+#' Important! First run `validateNormScoreInput()` function and them use the 
+#' correspondent outputs to plot individual diagnostic graphs as it is shown
+#' in the example below. 
 #'
 #' @param normalizedDataList A named list of normalized data matrices.
 #' @param groupData A data frame with sample names and group labels.
 #'
 #' @return A `ggplot` object.
 #'
-#' @keywords internal
-#' @noRd
+#' @examples
+#' # Simulate proteomic data with considerable systematic bias
+#' simData <- simulateData(nProteins = 1000, sampleShiftSd = 1,
+#'     sampleShiftCap = 0.9)
+#'
+#' # Adding variations to log raw data to simulate different normalization 
+#' # situations
+#' normalizedDataList <- list(
+#'     Log = simData$logData,
+#'     Norm1 = simData$logData + 
+#'         rnorm(n = ncol(simData$logData), mean = 5, sd = 0.5),
+#'     Norm2 = sweep(simData$logData, 2, 
+#'         apply(simData$logData, 2, median, na.rm = TRUE) - 
+#'         median(as.matrix(simData$logData), na.rm = TRUE), "-")
+#' )
+#' 
+#' # Validating inputs for diagnostic graphs
+#' inputs <- validateNormScoreInput(
+#'     normalizedDataList = normalizedDataList,
+#'     groupData = simData$metadata,
+#'     rawData = simData$rawData,
+#'     refGroup = NULL,
+#'     altGroup = NULL,
+#'     fromMainFunction = FALSE
+#' ) 
+#' 
+#' # Plot within-group correlations
+#' plotDiagnosticWithinGroupCor(
+#'     normalizedDataList = inputs$normalizedDataList,
+#'     groupData = inputs$groupData
+#' ) # Best to Worst: Log > Norm2 > Norm1
+#'
+#' @export
 
-plotItem2 <- function(normalizedDataList, groupData) {
+plotDiagnosticWithinGroupCor <- function(normalizedDataList, groupData) {
     # Computing data
     dataToPlot <- computeCorrelation(
         normalizedDataList = normalizedDataList,
@@ -234,11 +336,15 @@ plotItem2 <- function(normalizedDataList, groupData) {
 }
 
 
-#' Plot MA diagnostic plots
+#' Plot MA diagnostic plots (Item 3)
 #'
 #' Generates MA plots for each normalization method using the selected
 #' reference and alternative groups. These plots are used to assess
-#'   intensity-dependent differences between groups.
+#' intensity-dependent differences between groups.
+#'  
+#' Important! First run `validateNormScoreInput()` function and them use the 
+#' correspondent outputs to plot individual diagnostic graphs as it is shown
+#' in the example below. 
 #'
 #' @param normalizedDataList A named list of normalized data matrices.
 #' @param groupData A data frame with sample names and group labels.
@@ -248,11 +354,46 @@ plotItem2 <- function(normalizedDataList, groupData) {
 #' @return An arranged ggplot object containing one MA plot per normalization
 #'   method.
 #'
-#' @keywords internal
-#' @noRd
+#' @examples
+#' # Simulate proteomic data
+#' simData <- simulateData(nProteins = 1000, propDE = 0.5) 
+#'
+#' # Adding variations to log raw data to simulate different normalization 
+#' # situations
+#' normalizedDataList <- list(
+#'     Log = simData$logData,
+#'     Norm1 = cbind(simData$logData[, 1:20] + 
+#'         -0.8 * (rowMeans(simData$logData, na.rm = TRUE) - 
+#'             mean(rowMeans(simData$logData, na.rm = TRUE))), 
+#'         simData$logData[, 21:40]),
+#'     Norm2 = cbind(simData$logData[, 1:20] + 
+#'         0.3 * (rowMeans(simData$logData, na.rm = TRUE) - 
+#'             mean(rowMeans(simData$logData, na.rm = TRUE))), 
+#'         simData$logData[, 21:40])
+#' )
+#' 
+#' # Validating inputs for diagnostic graphs
+#' inputs <- validateNormScoreInput(
+#'     normalizedDataList = normalizedDataList,
+#'     groupData = simData$metadata,
+#'     rawData = simData$rawData,
+#'     refGroup = NULL,
+#'     altGroup = NULL,
+#'     fromMainFunction = FALSE
+#' ) 
+#' 
+#' # Plot MA diagnostic plots
+#' plotDiagnosticMA(
+#'     normalizedDataList = inputs$normalizedDataList,
+#'     groupData = inputs$groupData,
+#'     refGroup = inputs$refGroup,
+#'     altGroup = inputs$altGroup
+#' ) # Best to Worst: Log > Norm2 > Norm1
+#' 
+#' @export
 
 
-plotItem3 <- function(normalizedDataList, groupData, refGroup, altGroup) {
+plotDiagnosticMA <- function(normalizedDataList, groupData, refGroup, altGroup){
     dataToPlot <- lapply( # Computing data
         normalizedDataList,
         maDiffArea,
@@ -300,21 +441,51 @@ plotItem3 <- function(normalizedDataList, groupData, refGroup, altGroup) {
 }
 
 
-#' Plot mean-SD diagnostic plots
+#' Plot mean-SD diagnostic plots (Item 4)
 #'
 #' Generates diagnostic plots showing the relationship between sample order by
 #' mean intensity and standard deviation for each normalization method.
+#' 
+#' Important! First run `validateNormScoreInput()` function and them use the 
+#' correspondent outputs to plot individual diagnostic graphs as it is shown
+#' in the example below. 
 #'
 #' @param normalizedDataList A named list of normalized data matrices.
 #'
 #' @return An arranged ggplot object containing one plot per normalization
 #'   method.
 #'
-#' @keywords internal
-#' @noRd
+#' @examples
+#' # Simulate proteomic data
+#' simData <- simulateData(nProteins = 1000, sampleShiftSd = 0.5,
+#'     sampleShiftCap = 1, sampleSdStrength = -0.5, sampleSdRho = 1.5)
+#'
+#' # Artificial normalization (just adding shifts to raw data)
+#' normalizedDataList <- list(
+#'     Log = simData$logData,
+#'     Norm1 = simData$logData * runif(ncol(simData$logData), 0.7, 1.2),
+#'     Norm2 = simData$logData * runif(ncol(simData$logData), 0.8, 1.1)
+#' )
+#' 
+#' # Validating inputs for diagnostic graphs
+#' inputs <- validateNormScoreInput(
+#'     normalizedDataList = normalizedDataList,
+#'     groupData = simData$metadata,
+#'     rawData = simData$rawData,
+#'     refGroup = NULL,
+#'     altGroup = NULL,
+#'     fromMainFunction = FALSE
+#' ) 
+#' 
+#' # Plot mean-SD diagnostic plots
+#' plotDiagnosticMeanSD(
+#'     normalizedDataList = inputs$normalizedDataList
+#' ) # Best to Worst: Norm1 > Norm2 > Log
+#' 
+#' @export
 
 
-plotItem4 <- function(normalizedDataList) {
+plotDiagnosticMeanSD <- function(normalizedDataList) {
     dataToPlot <- lapply( # Computing data
         X = normalizedDataList,
         FUN = meanSDdiffArea,
@@ -365,22 +536,56 @@ plotItem4 <- function(normalizedDataList) {
 }
 
 
-#' Plot RLE distributions
+#' Plot RLE distributions (Item 5)
 #'
 #' Generates RLE distribution plots for each normalization method. These plots
 #' are used to inspect whether sample-wise RLE distributions are centered and
 #' comparable after normalization.
+#' 
+#' Important! First run `validateNormScoreInput()` function and them use the 
+#' correspondent outputs to plot individual diagnostic graphs as it is shown
+#' in the example below. 
 #'
 #' @param normalizedDataList A named list of normalized data matrices.
 #'
 #' @return An arranged ggplot object containing one RLE plot per normalization
 #'   method.
 #'
-#' @keywords internal
-#' @noRd
+#' @examples
+#' # Simulate proteomic data with considerable systematic bias
+#' simData <- simulateData(nProteins = 1000, sampleShiftSd = 1,
+#'     sampleShiftCap = 0.9)
+#'
+#' # Adding variations to log raw data to simulate different normalization 
+#' # situations
+#' normalizedDataList <- list(
+#'     Log = simData$logData,
+#'     Norm1 = simData$logData + 
+#'         rnorm(n = ncol(simData$logData), mean = 5, sd = 0.5),
+#'     Norm2 = sweep(simData$logData, 2, 
+#'         apply(simData$logData, 2, median, na.rm = TRUE) - 
+#'         median(as.matrix(simData$logData), na.rm = TRUE), "-")
+#' )
+#' 
+#' # Validating inputs for diagnostic graphs
+#' inputs <- validateNormScoreInput(
+#'     normalizedDataList = normalizedDataList,
+#'     groupData = simData$metadata,
+#'     rawData = simData$rawData,
+#'     refGroup = NULL,
+#'     altGroup = NULL,
+#'     fromMainFunction = FALSE
+#' ) 
+#' 
+#' # Plot RLE distributions
+#' plotDiagnosticRLE(
+#'     normalizedDataList = inputs$normalizedDataList
+#' ) # Best to Worst: Norm2 > Log = Norm1
+#' 
+#' @export
 
 
-plotItem5 <- function(normalizedDataList) {
+plotDiagnosticRLE <- function(normalizedDataList) {
     dataToPlot <- lapply( # Computing data
         X = normalizedDataList,
         FUN = rleMAPE,
@@ -427,22 +632,56 @@ plotItem5 <- function(normalizedDataList) {
 }
 
 
-#' Plot log-intensity distributions
+#' Plot log-intensity distributions (Item 6)
 #'
 #' Generates sample-wise intensity distribution plots for each normalization
 #' method. These plots are used to visually inspect global distributional
 #' consistency across samples.
+#' 
+#' Important! First run `validateNormScoreInput()` function and them use the 
+#' correspondent outputs to plot individual diagnostic graphs as it is shown
+#' in the example below. 
 #'
 #' @param normalizedDataList A named list of normalized data matrices.
 #'
 #' @return An arranged ggplot object containing one intensity distribution plot
 #'   per normalization method.
 #'
-#' @keywords internal
-#' @noRd
+#' @examples
+#' # Simulate proteomic data with considerable systematic bias
+#' simData <- simulateData(nProteins = 1000, sampleShiftSd = 1,
+#'     sampleShiftCap = 0.9)
+#'
+#' # Adding variations to log raw data to simulate different normalization 
+#' # situations
+#' normalizedDataList <- list(
+#'     Log = simData$logData,
+#'     Norm1 = simData$logData + 
+#'         rnorm(n = ncol(simData$logData), mean = 5, sd = 0.5),
+#'     Norm2 = sweep(simData$logData, 2, 
+#'         apply(simData$logData, 2, median, na.rm = TRUE) - 
+#'         median(as.matrix(simData$logData), na.rm = TRUE), "-")
+#' )
+#' 
+#' # Validating inputs for diagnostic graphs
+#' inputs <- validateNormScoreInput(
+#'     normalizedDataList = normalizedDataList,
+#'     groupData = simData$metadata,
+#'     rawData = simData$rawData,
+#'     refGroup = NULL,
+#'     altGroup = NULL,
+#'     fromMainFunction = FALSE
+#' ) 
+#' 
+#' # Plot log-intensity distributions
+#' plotDiagnosticTotalIntensity(
+#'     normalizedDataList = inputs$normalizedDataList
+#' ) # Best to Worst: Norm2 > Norm1 = Log
+#' 
+#' @export
 
 
-plotItem6 <- function(normalizedDataList) {
+plotDiagnosticTotalIntensity <- function(normalizedDataList) {
     # Computing data
     dataToPlot <- normalizedDataList
 

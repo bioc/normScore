@@ -106,7 +106,7 @@ is performed.The results can be visualized using
 # Simulate proteomic data
 simData <- simulateData(nProteins = 1000)
 
-# Normalyze ysing NormalyzerDE package
+# Artificial normalization (just adding shifts to raw data)
 normalizedDataList <- list(
     Norm1 = simData$logData + 0.1,
     Norm2 = simData$logData + 1,

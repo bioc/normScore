@@ -56,14 +56,24 @@ helps in the selection of the best normalization method.
 
 ## Installing normScore
 
-*normScore* package can be install through GitHub directly, both the
-develop or the stable version:
+### Stable version
+
+The *normScore* package can be installed from Bioconductor using:
+
+``` r
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("normScore")
+```
+
+### Develop version
+
+Develop version of *normScore* package can be install from GitHub:
 
 ``` r
 # Develop
 devtools::install_github("juliagcurras/normScore")
-
-# Stable
 ```
 
 ## Quick start

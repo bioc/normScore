@@ -28,7 +28,8 @@ test_that("validateNormScoreInput prepares valid two-group input", {
         refGroup = "B",
         altGroup = "A",
         returnDetails = TRUE,
-        nBoot = 100
+        nBoot = 100,
+        fromMainFunction = TRUE
     )
 
     expect_type(result, "list")
@@ -83,7 +84,8 @@ test_that("validateNormScoreInput detects single-group input", {
         refGroup = NULL,
         altGroup = NULL,
         returnDetails = TRUE,
-        nBoot = 100
+        nBoot = 100, 
+        fromMainFunction = TRUE
     )
 
     expect_true(result$singleGroup)
@@ -119,7 +121,8 @@ test_that("validateNormScoreInput stops when rawData has fewer than 100
             refGroup = "B",
             altGroup = "A",
             returnDetails = TRUE,
-            nBoot = 100
+            nBoot = 100, 
+            fromMainFunction = TRUE
         ),
         "minimum of 100 proteins"
     )
@@ -156,7 +159,8 @@ test_that("validateNormScoreInput reorders normalized datasets to
         refGroup = "B",
         altGroup = "A",
         returnDetails = TRUE,
-        nBoot = 100
+        nBoot = 100, 
+        fromMainFunction = TRUE
     )
 
     expect_equal(rownames(result$normalizedDataList$Norm1), rownames(rawData))

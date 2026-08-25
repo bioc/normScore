@@ -140,18 +140,18 @@ plotNormScoreDiagnostics <- function(
 
     finalPlots <- list() # Just to save
 
-    finalPlots[["item0"]] <- plotItem0(data = inputs$rawData)
+    finalPlots[["I0_SystematicBias"]] <- plotDiagnosticSystematicBias(
+      data = inputs$rawData)
 
-    finalPlots[["item1"]] <- plotItem1(
-        normalizedDataList = inputs$normalizedDataList,
-        groupData = inputs$groupData)
+    finalPlots[["I1_PCV"]] <- plotDiagnosticPCV(groupData = inputs$groupData,
+        normalizedDataList = inputs$normalizedDataList)
 
-    finalPlots[["item2"]] <- plotItem2(
+    finalPlots[["I2_WithinGroupCor"]] <- plotDiagnosticWithinGroupCor(
         normalizedDataList = inputs$normalizedDataList,
         groupData = inputs$groupData)
 
     if (!inputs$singleGroup) {
-        p3 <- plotItem3(
+        p3 <- plotDiagnosticMA(
             normalizedDataList = inputs$normalizedDataList,
             groupData = inputs$groupData,
             refGroup = inputs$refGroup,
@@ -159,16 +159,17 @@ plotNormScoreDiagnostics <- function(
     } else {
         p3 <- NULL
     }
-    finalPlots[["item3"]] <- p3
+    finalPlots[["I3_MAplot"]] <- p3
 
-    p4 <- plotItem4(normalizedDataList = inputs$normalizedDataList)
-    finalPlots[["item4"]] <- p4
+    p4 <- plotDiagnosticMeanSD(normalizedDataList = inputs$normalizedDataList)
+    finalPlots[["I4_MeanSD"]] <- p4
 
-    p5 <- plotItem5(normalizedDataList = inputs$normalizedDataList)
-    finalPlots[["item5"]] <- p5
+    p5 <- plotDiagnosticRLE(normalizedDataList = inputs$normalizedDataList)
+    finalPlots[["I5_RLE"]] <- p5
 
-    p6 <- plotItem6(normalizedDataList = inputs$normalizedDataList)
-    finalPlots[["item6"]] <- p6
+    p6 <- plotDiagnosticTotalIntensity(
+        normalizedDataList = inputs$normalizedDataList)
+    finalPlots[["I6_TotalIntensity"]] <- p6
 
     finalPlots
 }

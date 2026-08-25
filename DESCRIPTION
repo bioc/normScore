@@ -1,13 +1,19 @@
 Package: normScore
 Title: Evaluation and Ranking of Normalization Methods for Proteomics Data
-Version: 0.99.0
-Authors@R: 
+Version: 0.99.1
+Authors@R: c( 
     person(
         given = "Julia",
         family = "García Currás",
         role = c("aut", "cre"),
         email = "julia.gcurras@udc.es",
-        comment = c(ORCID = "0009-0002-6354-5035")
+        comment = c(ORCID = "0009-0002-6354-5035"),
+    ), 
+    person(
+        "Axencia Galega de Innovación (GAIN), Xunta de Galicia",
+        role = "fnd",
+        comment = "Industrial Doctorate Grant 2022-2026, Ref. 23_IN606D_2022_2707220"
+    )
     )
 Description: 
     Provides tools to evaluate and rank normalization methods for omics datasets
@@ -37,11 +43,13 @@ Suggests:
     NormalyzerDE, 
     SummarizedExperiment, 
     S4Vectors, 
-    methods
+    methods, 
+    BiocStyle, 
+    BiocManager
 VignetteBuilder: knitr
 BuildVignettes: true
 Config/testthat/edition: 3
 biocViews: Software, Proteomics, Normalization, QualityControl, Preprocessing, MultipleComparison
-URL: https://https://github.com/juliagcurras/normScore, https://juliagcurras.github.io/normScore/
+URL: https://github.com/juliagcurras/normScore, https://juliagcurras.github.io/normScore/
 BugReports: https://https://github.com/juliagcurras/normScore/issues
-Config/roxygen2/version: 8.0.0
+Config/roxygen2/version: 8.1.0

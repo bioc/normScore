@@ -85,7 +85,7 @@
 #' # Simulate proteomic data
 #' simData <- simulateData(nProteins = 1000)
 #'
-#' # Normalyze ysing NormalyzerDE package
+#' # Artificial normalization (just adding shifts to raw data)
 #' normalizedDataList <- list(
 #'     Norm1 = simData$logData + 0.1,
 #'     Norm2 = simData$logData + 1,
@@ -125,7 +125,8 @@ normScore <- function(normalizedDataList, groupData, rawData,
         refGroup = refGroup,
         altGroup = altGroup,
         returnDetails = returnDetails,
-        nBoot = nBoot)
+        nBoot = nBoot, 
+        fromMainFunction = TRUE)
 
     item0 <- cv( #----- Item 0 as correction factor ####
         x = colSums(rawData, na.rm = TRUE),

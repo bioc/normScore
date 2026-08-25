@@ -1,0 +1,768 @@
+---
+title: "Getting started with normScore"
+output:
+  BiocStyle::html_document:
+    toc: true
+    toc_depth: 2
+vignette: >
+  %\VignetteIndexEntry{Getting started with normScore}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+    collapse = TRUE,
+    comment = "#>",
+    fig.width = 7,
+    fig.height = 5
+)
+```
+
+
+# Overview
+
+`r BiocStyle::Biocpkg("normScore")` provides tools to evaluate and rank 
+normalization methods for omics data using a composite multi-metric 
+scoring framework.
+
+The package is designed to help compare different normalization strategies
+based on several complementary criteria, including variability, correlation
+structure, MA-trend behavior, relative log expression consistency, and
+sample-level intensity consistency.
+
+In this vignette:
+
+1. We explain the main basics of normScore metric. 
+2. We show a minimal workflow using simulated data.
+3. We provide an example of integration of `r BiocStyle::Biocpkg("normScore")` 
+with `r BiocStyle::Biocpkg("SummarizedExperiment")` and 
+`r BiocStyle::Biocpkg("NormalyzerDE")` R Packages.
+
+# Methods
+
+## General rationale
+
+A good normalization method should ideally:
+
+* reduce unwanted technical variability
+* preserve biological structure
+* avoid introducing systematic distortions
+* maintain sample comparability
+* stabilize distributions across samples
+
+Because these goals are not fully captured by a single number, 
+`r BiocStyle::Biocpkg("normScore")`
+uses a multi-item scoring approach.
+
+Lower final scores indicate better normalization performance relative to the
+other methods under comparison.
+
+## Inputs required by `r BiocStyle::Biocpkg("normScore")`
+
+The main function of the package expects three key inputs:
+
+1. a named list of normalized datasets
+2. a sample annotation table with group membership
+3. the raw data matrix
+
+Each normalized dataset should contain the same features and samples, arranged
+in the same order.
+
+The raw data are used to derive the log-transformed baseline normalization and
+to compute a correction factor related to global sample intensity variation.
+
+## The six scoring items
+
+The composite score is based on six item-wise metrics.
+
+### Item 1. Pooled coefficient of variation (PCV)
+
+This item summarizes within-group variability across samples.
+
+For each group, the coefficient of variation is computed feature-wise, and the
+mean value is summarized across groups. Lower values indicate lower relative
+dispersion within biological groups.
+
+This item captures whether a normalization method improves sample consistency
+without reference to differential structure.
+
+### Item 2. Within-group sample correlation
+
+This item evaluates pairwise sample correlations within each group.
+
+For each group, all unique pairwise sample-sample correlations are extracted,
+and a summary statistic based on the median and interquartile range is used.
+The score is transformed so that lower values indicate better performance.
+
+This item reflects whether samples from the same group become more similar
+after normalization.
+
+### Item 3. MA-trend deviation
+
+This item assesses whether the relationship between fold change and average
+expression shows systematic distortion.
+
+For two selected groups, an MA-like summary is constructed using:
+
+* `logFC`: the difference between group means
+* `AveExpr`: the average of group means
+
+A linear model is fitted, and the area between the fitted line and the
+expected horizontal line `logFC = 0` is computed. An additional shape
+correction factor penalizes undesirable trends in the spread of `logFC`
+across the expression range.
+
+Lower values indicate a flatter and more stable MA trend.
+
+### Item 4. Mean-SD trend deviation
+
+This item evaluates whether sample standard deviations depend systematically
+on sample mean intensity.
+
+For each sample, the mean and standard deviation are computed. Samples are
+ordered by mean intensity, and a linear model is fitted using standard
+deviation as a function of sample order.
+
+The slope of this fitted trend is then converted into an area-based metric
+measuring deviation from horizontality.
+
+Lower values indicate a weaker dependency between sample mean and sample
+variability.
+
+### Item 5. RLE consistency
+
+This item is inspired by the relative log expression (RLE) concept.
+
+For each feature, the median across samples is used as a reference. Relative
+expression values are obtained by dividing each observation by the feature-wise
+median, and the median relative expression is then computed sample-wise.
+
+The final score is the mean absolute percentage error of these sample-wise
+medians relative to 1.
+
+Lower values indicate that sample-wise medians are closer to the expected
+reference value.
+
+### Item 6. Total intensity consistency
+
+This item compares the distributional center and spread of sample intensity
+profiles.
+
+For each sample, the first quartile, median, and third quartile are computed.
+The score is based on the sum of the mean absolute percentage errors of these
+three summaries relative to their global sample medians.
+
+Lower values indicate more consistent sample distributions.
+
+## Scaling and aggregation
+
+Because the six items are on different scales, each one is transformed using
+min-max scaling before aggregation.
+
+After scaling, the six items are summed into a total score.
+
+This makes the final ranking easier to interpret and ensures that no single
+item dominates only because of its numerical range.
+
+## Correction applied to the log-transformed baseline
+
+The log-transformed raw data are included in the normalization list as a
+baseline reference.
+
+A correction factor derived from the coefficient of variation of total raw
+sample intensities is applied specifically to the `"Log"` method. This is used
+to account for the extent of global intensity imbalance already present in the
+raw data.
+
+## Additional adjustments and weighting
+
+During the development of the scoring framework, two additional adjustments
+were introduced to improve the balance between items and avoid dominance by
+specific components.
+
+First, the contribution of the within-group correlation metric (Item 2) was
+reduced. This item was observed to have relatively low discriminative power
+across normalization methods, often yielding very similar values. To prevent
+it from contributing disproportionately to the final score despite its limited
+ability to differentiate methods, its scaled value was down-weighted by a
+factor of 0.1.
+
+Second, the correction factor applied to the log-transformed baseline
+normalization (Item 0) was moderated. This factor is derived from the
+coefficient of variation of total sample intensities in the raw data and is
+intended to account for global intensity imbalance.
+
+However, without adjustment, this correction could have an excessive influence
+on the final score, particularly for datasets with very low or very high
+values of the correction factor. To mitigate this effect, the magnitude of the
+correction was reduced by scaling it down (e.g., dividing or adjusting its
+impact), ensuring that it contributes to the ranking without dominating it.
+
+These adjustments were introduced to maintain a balanced contribution across
+items and to improve the stability and interpretability of the final ranking.
+
+
+# Basic usage
+
+## Simulating example data
+
+To keep the package lightweight and reproducible, 
+`r BiocStyle::Biocpkg("normScore")` includes a data simulation function that 
+generates proteomics-like two-group datasets.
+
+```{r simulateData}
+# BiocManager::install("normScore")
+library(normScore)
+
+simData <- simulateData(
+    nProteins = 500,
+    nPerGroup = 4,
+    sampleShiftSd = 0.12,
+    sampleShiftCap = 1,
+    sampleSdStrength = 1.2,
+    sampleSdRho = 0.3,
+    rhoWithin = 0.6,
+    rhoBetween = 0.3,
+    loadingSd = 0.45,
+    sigmaHi = 0.03,
+    sigmaLo = 0.4,
+    gammaSigma = 3.8,
+    kMnar = 1.6,
+    addMissing = FALSE,
+    seed = 123
+)
+
+```
+
+The simulated object contains three main elements:
+
+```{r justSimDataStr}
+names(simData)
+```
+
+* `logData`: simulated data on the log2 scale
+* `rawData`: simulated data on the raw scale
+* `metadata`: sample annotation with group membership
+
+We can inspect the sample metadata:
+
+```{r simMetadata}
+head(simData$metadata)
+```
+
+## Building a list of normalized datasets
+
+The main function of the package, `normScore::normScore()`, expects a named 
+list of normalized datasets. Each element of the list should be a matrix or 
+data frame with the same rows (features) and columns (samples).
+
+For illustration purposes, we create a few simple variants of the simulated
+log-scale data. In a real analysis, these would correspond to different
+normalization methods.
+
+```{r normalization}
+# Median normalization
+MedianMat <- NormalyzerDE::medianNormalization(simData$rawData)
+colnames(MedianMat) <- colnames(simData$rawData)
+rownames(MedianMat) <- rownames(simData$rawData)
+
+# Quantile normalization
+QuantileMat <- limma::normalizeQuantiles(
+    simData$logData
+)
+colnames(QuantileMat) <- colnames(simData$logData)
+rownames(QuantileMat) <- rownames(simData$logData)
+
+
+# CyclicLoess normalization
+CyclicNorm <- limma::normalizeCyclicLoess(
+    simData$logData, method="fast",  adaptive.span=FALSE
+)
+
+
+# All together
+normalizedDataList <- list(
+    Log = simData$logData,
+    Median = MedianMat,
+    Quantile = QuantileMat, 
+    CyclicLoess = CyclicNorm
+)
+
+names(normalizedDataList)
+```
+
+## Running `normScore()`
+
+We now compute the normalization ranking.
+
+```{r normScoreUsage}
+result <- normScore(
+    normalizedDataList = normalizedDataList,
+    groupData = simData$metadata,
+    rawData = simData$rawData,
+    returnDetails = TRUE,
+    nBoot = 150
+)
+```
+
+*Important considerations!* Before running `r BiocStyle::Biocpkg("normScore")`, 
+verify that:
+
+- all assays contain the same rows and columns;
+- feature and sample names are unique;
+- the order of `groupData$Samples` matches the assay columns;
+- missing values are represented consistently across assays;
+- every sample has a valid group assignment.
+
+## Final ranking
+
+The `finalRanking` element contains the final composite score for each
+normalization method.
+
+```{r finalNormScoreRank}
+result$finalRanking
+```
+
+Lower values indicate better normalization performance according to the
+scoring framework implemented in the package.
+
+## Detailed scores
+
+The `detailRanking` element contains the scaled item-wise scores used to
+build the final ranking.
+
+```{r detailedRanking}
+result$detailRanking
+```
+
+The six item scores correspond to:
+
+1. pooled coefficient of variation
+2. within-group sample correlation
+3. MA-plot trend deviation
+4. mean-SD trend deviation
+5. RLE consistency
+6. total intensity consistency
+
+These are scaled and combined into a final score.
+
+## Bootstrap summary
+
+If `returnDetails = TRUE`, the function also computes bootstrap-based
+summary scores and confidence intervals.
+
+```{r strSimulatedData}
+result$bootstrapScore
+```
+
+This output contains:
+
+* the normalization method name
+* the mean bootstrap normScore
+* the lower 95% confidence bound
+* the upper 95% confidence bound
+
+## Bootstrap plot
+
+The bootstrap summary can also be visualized directly:
+
+```{r plotBootstrapInterval}
+plotBootstrapNormScore(result)
+```
+
+# Diagnostic plots
+
+Individual diagnostic plots from state-of-art normalization criteria can be
+visualized with the following function:
+
+```{r getDiagnosticPlots}
+allPlots <- plotNormScoreDiagnostics(
+    normalizedDataList = normalizedDataList,
+    groupData = simData$metadata,
+    rawData = simData$rawData
+)
+
+names(allPlots)
+```
+
+## Item 0 - Systematic Bias Penalty 
+
+In the following barplot, each bar represents the mean of total intensity
+or protein quantity for each sample from the raw data, that is, without 
+any transformations or normalizations applied. The magnitude of the systematic
+bias in the current data can be assessed using this figure. 
+
+If the mean of total intensity across samples
+shows large differences (for example, a three-fold difference between
+the highest and the lowest values), then the variability in the
+data is significant. In this case, a more robust normalization method than just 
+the logarithm transformation is likely to be needed. 
+
+```{r item0, fig.height=10, fig.width=8}
+allPlots[["I0_SystematicBiasPenalty"]]
+```
+
+## Item 1. Pooled Coefficient of Variance (PCV)
+
+The coefficient of variation (CV) indicates the dispersion of all data 
+around the average of each variable, i.e., each protein. Therefore, 
+it is interpreted as a percentage. High CV values indicate widely 
+scattered data. In this app, the CV is estimated 
+for each group and referred to as the pooled coefficient of variation (PCV).
+A lower PCV is expected for normalized data against only 
+log-transformed data, which means that normalization reduces
+the variability within each group.
+
+Once PCV is calculated, the results are displayed in two formats: If the number 
+of groups is fewer than 5, the figure will show the point estimate
+of the mean and its 95% confidence interval. However, with 5 or more 
+groups, a box plot will be displayed to depict the distribution
+of PCV across the different groups.
+
+```{r item1, fig.height=6, fig.width=6}
+allPlots[["I1_PCV"]]
+```
+
+
+## Item 2. Within-group sample correlation
+
+We expect a strong correlation of protein groups intensities
+between samples within the same group, as they reflect the 
+same condition. In this section, coefficients of correlation
+are estimated by pairs of samples within each study group, 
+using a non-parametric approach: Spearman's correlation. The
+distribution of these correlations is then plotted for each 
+normalization.
+
+The correlations are also estimated by normalization type. 
+The best normalization method will be the one that increases
+intragroup correlations the most, indicating a reduction in
+intragroup variation.
+
+```{r item2, fig.height=6, fig.width=6}
+allPlots[["I2_WithinGroupCorrelation"]]
+```
+
+
+## Item 3.  MA-trend deviation
+
+As most of the proteins will not be differentially 
+expressed between groups, a logFC close to 0 is expected, 
+so most of the points should fall along this line on Y-axis. 
+Moreover, it is more difficult to properly estimate proteins at 
+lower concentrations, and as a consequence, higher dispersion is expected when 
+the average of protein quantities in both groups are small (X-axis). 
+In contrast, proteins with higher concentrations in both 
+groups will be accurately estimated, so less dispersion is expected at the ends
+of the X-axis.
+
+```{r item3, fig.height=10, fig.width=8}
+allPlots[["I3_MAplot"]]
+```
+
+## Item 4.  Mean-SD trend deviation
+
+In this type of plot, samples are sorted by their average quantity, 
+and then the standard deviation is represented versus 
+the previously established average order.
+
+**How should this graph be interpreted?**
+
+There should be no correlation between the standard deviation and the 
+mean of protein quantities through the different samples. For this reason,
+the best normalization would be the one in which the points are randomly 
+distributed on the plot.
+
+```{r item4, fig.height=10, fig.width=8}
+allPlots[["I4_MeanSD"]]
+```
+
+## Item 5. RLE consistency
+
+For each protein, the median of intensity across 
+all samples is estimated, and then the intensity 
+of each protein is divided by its median. This allows us to obtain the 
+relative expression
+of a protein from a specific sample relative to all samples. 
+Finally, this data is log-transformed, and its distribution 
+(by sample) is displayed using a boxplot.
+
+**How should this graph be interpreted?**
+
+Most of the proteins should show a log relative expression
+value close to 0, as the majority of the protein quantification values 
+should match their median across all samples (ratio = 1, and log(1) = 0). 
+For this reason, the boxplots across different samples should be centered 
+around 0, and the best normalization would be the one that achieves 
+this outcome.
+
+```{r item5, fig.height=10, fig.width=8}
+allPlots[["I5_RLE"]]
+```
+
+## Item 6. Total intensity consistency
+
+Using all protein quantities in each sample, their distribution is represented 
+through box plots once all normalizations have been applied to the data.
+
+**How should this graph be interpreted?**
+
+Effective removal of systematic error will result in
+homogeneous distributions of protein quantities 
+across all samples.
+
+```{r item6, fig.height=10, fig.width=8}
+allPlots[["I6_TotalIntensity"]]
+```
+
+# Interoperability with other packages
+
+`r BiocStyle::Biocpkg("SummarizedExperiment")` is a standard Bioconductor 
+container for storing high-dimensional molecular data together with feature 
+and sample metadata.
+A single object can contain several assays, making it convenient for keeping
+the original data and multiple normalized versions aligned. In addition, 
+`NormalizerDE` is a gold standard option to assess normalization methods. 
+
+Due to the relevance of both packages in relation to
+`r BiocStyle::Biocpkg("normScore")` goals, we show in this last section how 
+to use them together. 
+
+```{r requieredPackages, message=FALSE}
+# BiocManager::install("normScore")
+library(normScore)
+
+# BiocManager::install("SummarizedExperiment")
+library(SummarizedExperiment)
+
+# BiocManager::install("S4Vectors")
+library(S4Vectors)
+
+# BiocManager::install("NormalyzerDE")
+library(NormalyzerDE)
+```
+
+
+## Example data
+
+For illustration, we generate a small log-transformed abundance matrix using 
+`simulateData` function from `r BiocStyle::Biocpkg("normScore")` data package.
+
+Rows represent proteins and columns represent samples in logData and rawData 
+items from the output `simData` object.
+
+```{r example-data}
+simData <- simulateData(
+    nProteins = 500,
+    nPerGroup = 4,
+    sampleShiftSd = 0.12,
+    sampleShiftCap = 1,
+    sampleSdStrength = 1.2,
+    sampleSdRho = 0.3,
+    rhoWithin = 0.6,
+    rhoBetween = 0.3,
+    loadingSd = 0.45,
+    sigmaHi = 0.03,
+    sigmaLo = 0.4,
+    gammaSigma = 3.8,
+    kMnar = 1.6,
+    addMissing = FALSE,
+    seed = 456
+)
+
+rawData <- simData$rawData
+```
+
+
+## Build a SummarizedExperiment object
+
+The original and normalized matrices are stored as separate assays.
+Sample-level information is stored in `colData`, whereas optional
+feature-level annotations can be stored in `rowData`.
+
+```{r se-object}
+sampleData <- S4Vectors::DataFrame(
+    sample = simData$metadata$Samples,
+    group = simData$metadata$Groups
+)
+
+se <- SummarizedExperiment::SummarizedExperiment(
+    assays = list(rawData = rawData),
+    colData = sampleData,
+    metadata = list(
+        sample = "sample",
+        group = "group")
+)
+```
+
+## Normalization using NormalyzerDE
+
+Using normalyzerDE different normalization methods are simultaneously applied 
+to the input data.
+
+```{r normalize-data}
+normalyzerObject <- NormalyzerDE::getVerifiedNormalyzerObject(
+    jobName = "normScore_example",
+    summarizedExp = se,
+    noLogTransform = FALSE
+)
+
+normalyzerResults <- NormalyzerDE::normMethods(
+    normalyzerObject,
+    normalizeRetentionTime = FALSE
+)
+```
+
+
+## Prepare normScore inputs
+
+`r BiocStyle::Biocpkg("normScore")` evaluates a named list of matrices. 
+We therefore extract the normalized assays from the
+`r BiocStyle::Biocpkg("SummarizedExperiment")` object.
+
+```{r prepare-normalized-list}
+normalizedDataList <- methods::slot(
+    normalyzerResults,
+    "normalizations"
+)
+```
+
+Setting rownames as some normalized matrices from normalyzerDE 
+lost protein rownames:
+
+```{r adjust-rownames}
+normalizedDataList <- lapply(
+    normalizedDataList,
+    function(x) {
+        rownames(x) <- rownames(rawData)
+        x
+    }
+)
+```
+
+The group information is constructed from `colData`. The sample order must
+match the matrix columns.
+
+```{r prepare-group-data}
+groupData <- data.frame(
+    Samples = sampleData$sample,
+    Groups = sampleData$group
+)
+
+stopifnot(
+    identical(groupData$Samples, colnames(rawData)),
+    all(vapply(
+        normalizedDataList,
+        function(x) identical(colnames(x), groupData$Samples),
+        logical(1)
+    ))
+)
+
+groupData
+```
+
+## Run normScore  {.tabset}
+
+The extracted objects can now be supplied to 
+`r BiocStyle::Biocpkg("normScore")`.
+
+```{r run-normscore}
+normScoreResults <- normScore(
+    normalizedDataList = normalizedDataList,
+    groupData = groupData,
+    rawData = rawData
+)
+```
+
+Depending on the final argument names of the exported `normScore::normScore()`
+function, this call may need to be adapted to the current package API.
+
+The returned object can be inspected directly:
+
+```{r inspect-results}
+names(normScoreResults)
+
+normScoreResults$finalRanking
+```
+
+## Store results in the SummarizedExperiment metadata
+
+Analysis-level information that is not naturally associated with individual
+features or samples can be stored in `metadata(se)`.
+
+```{r store-results}
+metadata(se)$normScore <- normScoreResults
+```
+
+The results can then be recovered without separating them from the data:
+
+```{r recover-results}
+storedResults <- metadata(se)$normScore
+names(storedResults)
+```
+
+A compact summary table may also be stored separately:
+
+```{r store-summary}
+metadata(se)$normalizationRanking <- normScoreResults$score
+```
+
+## Add a selected normalized assay
+
+Once a normalization method has been selected, its matrix can remain as an
+assay of the same object. For example, if median normalization is selected:
+
+```{r selected-assay}
+assay(se, "Selected") <- normalizedDataList$Quantile
+
+assayNames(se)
+```
+
+The selected assay can then be used in downstream Bioconductor workflows:
+
+```{r downstream-example}
+selectedData <- assay(se, "Selected")
+
+dim(selectedData)
+```
+
+## Working with an existing SummarizedExperiment
+
+For an existing object, the minimum workflow is:
+
+```{r compact-workflow, eval=FALSE}
+assayNames(se)
+colnames(se)
+colData(se)
+
+rawData <- assay(se, "Unnormalized")
+
+normalizationMethods <- c("Mean", "Median", "Quantile")
+
+normalizedDataList <- lapply(
+    normalizationMethods,
+    function(method) assay(se, method)
+)
+names(normalizedDataList) <- normalizationMethods
+
+groupData <- data.frame(
+    Samples = colnames(se),
+    Groups = as.character(colData(se)$group)
+)
+
+normScoreResults <- normScore(
+    normalizedDataList = normalizedDataList,
+    groupData = groupData,
+    rawData = rawData
+)
+
+metadata(se)$normScore <- normScoreResults
+```
+
+
+# Session information
+
+```{r versions}
+sessionInfo()
+```

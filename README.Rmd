@@ -32,14 +32,25 @@ We strongly recommend using this score in comination with the graphical represen
 
 ## Installing normScore
 
-*normScore* package can be install through GitHub directly, both the develop or the stable version:
+### Stable version
 
+The *normScore* package can be installed from Bioconductor using:
+
+```{r, eval=FALSE}
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("normScore")
+```
+
+### Develop version
+
+Develop version of *normScore* package can be install from GitHub:
 
 ```{r echo = TRUE, eval=FALSE}
 # Develop
 devtools::install_github("juliagcurras/normScore")
 
-# Stable
 ```
 
 
@@ -109,9 +120,9 @@ usethis::use_namespace()
 usethis::use_roxygen_md()
 usethis::use_testthat()
 usethis::use_news_md()
-usethis::use_vignette("normScore-intro")
-usethis::use_vignette("normScore-method")
-usethis::use_vignette("normScore-simulation")
+usethis::use_vignette("normScore")
+# usethis::use_vignette("normScore-method")
+# usethis::use_vignette("normScore-simulation")
 usethis::use_vignette(
     name = "normScore-MorePackages", 
     title = "Using normScore with SummarizedExperiment 
@@ -138,6 +149,7 @@ usethis::use_r("simulateData")
 
 
 # Building <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+# devtools::build_vignettes()
 roxygen2::roxygenise() # man folder
 devtools::document()
 devtools::build_manual() # requires latex

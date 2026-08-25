@@ -26,8 +26,10 @@ test_that("plotNormScoreDiagnostics returns all diagnostic
     )
 
     expect_type(plots, "list")
-    expect_named(plots, paste0("item", 0:6))
-    expect_false(is.null(plots$item3))
+    expect_named(plots, c("I0_SystematicBias", "I1_PCV",
+        "I2_WithinGroupCor", "I3_MAplot",
+        "I4_MeanSD", "I5_RLE","I6_TotalIntensity"))
+    expect_false(is.null(plots$I3_MAplot))
 })
 
 
@@ -58,8 +60,10 @@ test_that("plotNormScoreDiagnostics skips item3 for single-group input", {
     )
 
     expect_type(plots, "list")
-    expect_named(plots, paste0("item", c(0:2, 4:6)))
-    expect_null(plots$item3)
+    expect_named(plots, c("I0_SystematicBias", "I1_PCV",
+        "I2_WithinGroupCor", "I4_MeanSD", "I5_RLE", 
+        "I6_TotalIntensity"))
+    expect_null(plots$I3_MAplot)
 })
 
 
