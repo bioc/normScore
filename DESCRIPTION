@@ -1,6 +1,6 @@
 Package: normScore
 Title: Evaluation and Ranking of Normalization Methods for Proteomics Data
-Version: 0.99.1
+Version: 1.0.0
 Authors@R: c( 
     person(
         given = "Julia",
